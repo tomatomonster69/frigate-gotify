@@ -1,0 +1,27 @@
+services:
+  frigate-gotify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frigate-gotify
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override any env vars here if needed
+      - TZ=Europe/Berlin
+    networks:
+      - frigate-network
+    depends_on: []
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  frigate-network:
+    external: true
+    # If the network doesn't exist, create it with:
+    # docker network create frigate-network
+    # Or remove 'external: true' to create a local network
