@@ -29,11 +29,11 @@ class Settings(BaseSettings):
     
     # Gotify Configuration
     gotify_url: str = Field(
-        ...,
+        default="http://gotify:80",
         description="URL of the Gotify server"
     )
     gotify_app_token: str = Field(
-        ...,
+        default="default_token",
         description="Application token for Gotify"
     )
     
