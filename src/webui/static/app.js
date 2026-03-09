@@ -118,6 +118,10 @@ async function updatePreview() {
         const titleTemplate = document.getElementById('title_template').value;
         const messageTemplate = document.getElementById('message_template').value;
         
+        // Show loading state when updating
+        document.getElementById('preview-title').textContent = 'Updating...';
+        document.getElementById('preview-message').textContent = 'Updating...';
+        
         if (!titleTemplate && !messageTemplate) return;
         
         try {
@@ -143,7 +147,7 @@ async function updatePreview() {
             document.getElementById('preview-title').textContent = 'Error';
             document.getElementById('preview-message').textContent = 'Failed to load preview';
         }
-    }, 300);
+    }, 150); // Reduced from 300ms for more responsive preview
 }
 
 // Template textareas
