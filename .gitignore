@@ -11,6 +11,7 @@ env/
 
 # Environment files (contain secrets)
 .env
+!.env.example
 
 # IDE
 .vscode/
@@ -25,3 +26,11 @@ env/
 dist/
 build/
 *.egg-info/
+
+# Development/Agent files
+agents.md
+RELEASE_NOTES.md
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -3,17 +3,14 @@ services:
     image: ghcr.io/tomatomonster69/frigate-gotify:latest
     container_name: frigate-gotify
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      # Override any env vars here if needed
       - TZ=Europe/Berlin
     ports:
       - "80:80"
     networks:
       - frigate-network
     volumes:
-      - config-data:/app/config
+      - frigate-gotify-config:/app/config
     logging:
       driver: "json-file"
       options:
@@ -25,5 +22,5 @@ networks:
     driver: bridge
 
 volumes:
-  config-data:
+  frigate-gotify-config:
     driver: local
