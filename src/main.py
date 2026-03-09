@@ -4,13 +4,16 @@ import asyncio
 import logging
 import signal
 import sys
+import threading
 from datetime import datetime
 from typing import Set, Optional, Dict, Any
 
+import uvicorn
 from .config import settings
 from .frigate_client import FrigateClient, ReviewEvent, Event
 from .gotify_client import GotifyClient
 from .template_engine import TemplateEngine, parse_template_config
+from .webui import create_app
 
 # Configure logging
 logging.basicConfig(
@@ -186,8 +189,20 @@ class FrigateGotifyBridge:
             logger.error(f"Error processing review {review.id}: {e}", exc_info=True)
 
 
+def run_web_server():
+    """Run the web UI server in a separate thread."""
+    app = create_app()
+    logger.info("Starting Web UI on http://0.0.0.0:80")
+    uvicorn.run(app, host="0.0.0.0", port=80, log_level="warning")
+
+
 async def main():
     """Main entry point."""
+    # Start web UI in a separate thread
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+    logger.info("Web UI thread started")
+    
     bridge = FrigateGotifyBridge()
     
     # Handle shutdown signals

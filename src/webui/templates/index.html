@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frigate-Gotify Template Editor</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Frigate-Gotify Template Editor</h1>
+            <div class="header-actions">
+                <select id="preset-select">
+                    <option value="">-- Load Preset --</option>
+                </select>
+            </div>
+        </header>
+
+        <main>
+            <div class="editor-section">
+                <div class="section-header">
+                    <h2>📋 Template Variables</h2>
+                    <span class="hint">Click to insert at cursor</span>
+                </div>
+                <div id="variables" class="variable-chips"></div>
+            </div>
+
+            <div class="editor-section">
+                <div class="section-header">
+                    <h2>📝 Title Template</h2>
+                </div>
+                <textarea id="title-template" placeholder="Enter title template..."></textarea>
+            </div>
+
+            <div class="editor-section">
+                <div class="section-header">
+                    <h2>💬 Message Template</h2>
+                </div>
+                <textarea id="message-template" placeholder="Enter message template..." rows="6"></textarea>
+            </div>
+
+            <div class="editor-section preview-section">
+                <div class="section-header">
+                    <h2>👁️ Live Preview</h2>
+                    <span class="preview-hint">Sample notification preview</span>
+                </div>
+                <div class="preview-container">
+                    <div class="gotify-preview">
+                        <div class="gotify-header">
+                            <span class="gotify-icon">🔔</span>
+                            <span class="gotify-app">Frigate-Gotify</span>
+                            <span class="gotify-time">Just now</span>
+                        </div>
+                        <div class="gotify-content">
+                            <div class="gotify-title" id="preview-title">Loading...</div>
+                            <div class="gotify-message" id="preview-message">Loading...</div>
+                            <div class="gotify-image">
+                                <img src="/static/sample_snapshot.jpg" alt="Sample snapshot" onerror="this.style.display='none'">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="status" id="status"></div>
+            <button id="save-btn" class="btn-primary">💾 Save Template</button>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -8,6 +8,8 @@ services:
     environment:
       # Override any env vars here if needed
       - TZ=Europe/Berlin
+    ports:
+      - "80:80"
     networks:
       - frigate-network
     logging:

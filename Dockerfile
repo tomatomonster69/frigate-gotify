@@ -24,9 +24,12 @@ USER appuser
 # Set Python path
 ENV PYTHONPATH=/app
 
+# Expose Web UI port
+EXPOSE 80
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8080/health')" || exit 1
+    CMD python -c "import httpx; httpx.get('http://localhost:80/')" || exit 1
 
 # Run the service
 CMD ["python", "-m", "src.main"]
