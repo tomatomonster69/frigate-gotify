@@ -264,12 +264,12 @@ def create_app() -> FastAPI:
                 """Escape value for .env file, quoting if it contains special chars."""
                 if not value:
                     return '""'
-                # Check if value needs quoting (contains newlines, quotes, or special chars)
-                if '\n' in value or '"' in value or "'" in value or '#' in value or ' ' in value.strip():
-                    # Escape double quotes and wrap in double quotes
-                    escaped = value.replace('\\', '\\\\').replace('"', '\\"')
+                # Convert newlines to literal \n escape sequence for proper .env parsing
+                escaped = value.replace('\\', '\\\\').replace('\n', '\\n').replace('"', '\\"')
+                # Check if value needs quoting (contains special chars)
+                if ' ' in value.strip() or '#' in value or '"' in value:
                     return f'"{escaped}"'
-                return value
+                return escaped
             
             # Build .env content
             lines = [
