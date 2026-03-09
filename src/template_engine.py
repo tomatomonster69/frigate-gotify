@@ -78,6 +78,7 @@ class TemplateEngine:
     def _compile_templates(self):
         """Pre-compile all templates for better performance."""
         try:
+            # Try to compile with original template first
             self._compiled["title"] = self.env.from_string(self.title_template)
             self._compiled["message"] = self.env.from_string(self.message_template)
             
@@ -91,8 +92,11 @@ class TemplateEngine:
                 self._compiled[f"camera_{key}"] = self.env.from_string(template)
                 
         except TemplateSyntaxError as e:
-            logger.error(f"Template syntax error: {e}")
-            raise ValueError(f"Invalid template syntax: {e}")
+            logger.warning(f"Template syntax error: {e}")
+            logger.warning("Using default templates as fallback")
+            # Fallback to defaults
+            self._compiled["title"] = self.env.from_string(DEFAULT_TITLE_TEMPLATE)
+            self._compiled["message"] = self.env.from_string(DEFAULT_MESSAGE_TEMPLATE)
     
     def _get_template_vars(
         self,
