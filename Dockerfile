@@ -19,6 +19,10 @@ COPY src/ ./src/
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser
+
+# Create config directory with proper ownership for appuser
+RUN mkdir -p /app/config && chown appuser:appuser /app/config
+
 USER appuser
 
 # Set Python path
