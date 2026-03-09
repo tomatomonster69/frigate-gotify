@@ -129,6 +129,12 @@ class TemplatePreviewRequest(BaseModel):
     message_template: str
 
 
+class TestAlertRequest(BaseModel):
+    """Test alert request (optional title/message)."""
+    title: Optional[str] = None
+    message: Optional[str] = None
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(title="Frigate-Gotify Config")
@@ -154,6 +160,27 @@ def create_app() -> FastAPI:
     async def get_presets():
         """Get preset templates."""
         return {"presets": PRESET_TEMPLATES}
+    
+    @app.post("/api/test")
+    async def test_alert(request: TestAlertRequest):
+        """Send a test notification to Gotify."""
+        from ..gotify_client import GotifyClient
+        from ..config import settings
+        
+        try:
+            gotify = GotifyClient()
+            title = request.title or "Test Notification"
+            message = request.message or "This is a test notification from Frigate-Gotify!"
+            
+            success = await gotify.send_message(title=title, message=message)
+            
+            return {
+                "success": success,
+                "message": "Test notification sent!" if success else "Failed to send test notification",
+            }
+        except Exception as e:
+            logger.error(f"Error sending test alert: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
     
     @app.get("/api/config")
     async def get_config():

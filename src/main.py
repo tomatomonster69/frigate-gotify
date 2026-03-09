@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Set, Optional, Dict, Any
 
 import uvicorn
+from pathlib import Path
 from .config import settings
 from .frigate_client import FrigateClient, ReviewEvent, Event
 from .gotify_client import GotifyClient
@@ -31,6 +32,7 @@ class FrigateGotifyBridge:
         self.frigate = FrigateClient()
         self.gotify = GotifyClient()
         self.running = False
+        self.processed_reviews_file = Path("/app/config/processed_reviews.json")
         self.processed_reviews: Set[str] = set()
         
         # Initialize template engine
@@ -50,6 +52,10 @@ class FrigateGotifyBridge:
         logger.info(f"Poll interval: {settings.poll_interval}s")
         logger.info(f"Severity filter: {settings.severity_filter}")
         logger.info(f"Camera filter: {settings.camera_filter}")
+        
+        # Load processed reviews from file
+        self._load_processed_reviews()
+        logger.info(f"Loaded {len(self.processed_reviews)} processed reviews from disk")
         
         # Health checks
         if not await self.gotify.health_check():
@@ -71,6 +77,31 @@ class FrigateGotifyBridge:
         """Stop the bridge service."""
         logger.info("Stopping Frigate-Gotify bridge...")
         self.running = False
+        # Save processed reviews to file
+        self._save_processed_reviews()
+    
+    def _load_processed_reviews(self):
+        """Load processed review IDs from JSON file."""
+        if self.processed_reviews_file.exists():
+            try:
+                content = self.processed_reviews_file.read_text()
+                if content.strip():
+                    import json
+                    ids = json.loads(content)
+                    self.processed_reviews = set(ids)
+                    logger.info(f"Loaded {len(self.processed_reviews)} processed reviews")
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Error loading processed reviews: {e}")
+    
+    def _save_processed_reviews(self):
+        """Save processed review IDs to JSON file."""
+        try:
+            self.processed_reviews_file.parent.mkdir(parents=True, exist_ok=True)
+            import json
+            self.processed_reviews_file.write_text(json.dumps(list(self.processed_reviews)))
+            logger.debug(f"Saved {len(self.processed_reviews)} processed reviews")
+        except IOError as e:
+            logger.error(f"Error saving processed reviews: {e}")
     
     async def poll_events(self):
         """Poll for new review events and send notifications."""

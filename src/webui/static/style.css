@@ -346,6 +346,44 @@ header .subtitle {
     transform: translateY(-2px);
 }
 
+.btn-test {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-test:hover {
+    background: linear-gradient(135deg, #f5ac32, #f39c12);
+    transform: translateY(-2px);
+}
+
+.test-result {
+    margin-top: 15px;
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-weight: 500;
+    text-align: center;
+    display: none;
+}
+
+.test-result.success {
+    display: block;
+    background: #2e7d32;
+    color: #fff;
+}
+
+.test-result.error {
+    display: block;
+    background: #c62828;
+    color: #fff;
+}
+
 /* Status Messages */
 .status {
     position: fixed;

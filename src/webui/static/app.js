@@ -290,6 +290,43 @@ function showStatus(message, type) {
     }, 5000);
 }
 
+// Test button handler
+document.getElementById('test-btn').addEventListener('click', async () => {
+    try {
+        showStatus('Sending test alert...', 'info');
+        
+        const response = await fetch('/api/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        
+        const data = await response.json();
+        
+        const testResult = document.getElementById('test-result');
+        if (response.ok && data.success) {
+            testResult.className = 'test-result success';
+            testResult.textContent = '✓ Test notification sent successfully!';
+            showStatus('Test notification sent!', 'success');
+        } else {
+            testResult.className = 'test-result error';
+            testResult.textContent = '✗ ' + (data.message || 'Failed to send test notification');
+            showStatus('Failed to send test notification', 'error');
+        }
+        
+        // Clear the result after 5 seconds
+        setTimeout(() => {
+            testResult.textContent = '';
+            testResult.className = 'test-result';
+        }, 5000);
+    } catch (error) {
+        const testResult = document.getElementById('test-result');
+        testResult.className = 'test-result error';
+        testResult.textContent = '✗ Network error';
+        showStatus('Network error', 'error');
+    }
+});
+
 // Restart button handler
 document.getElementById('restart-btn').addEventListener('click', async () => {
     if (!confirm('Are you sure you want to restart the service? This will temporarily interrupt notifications.')) {
