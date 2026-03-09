@@ -59,6 +59,16 @@ class Settings(BaseSettings):
         description="Whether to include snapshot images in notifications"
     )
     
+    # Image Configuration
+    snapshot_quality: int = Field(
+        default=90,
+        description="Snapshot quality (1-100, higher = better quality)"
+    )
+    snapshot_format: str = Field(
+        default="jpg",
+        description="Snapshot format (jpg, png, webp)"
+    )
+    
     # Filter Configuration
     severity_filter: str = Field(
         default="alert,detection",
@@ -67,6 +77,28 @@ class Settings(BaseSettings):
     camera_filter: str = Field(
         default="all",
         description="Comma-separated list of cameras to monitor, or 'all'"
+    )
+    
+    # Template Configuration
+    title_template: Optional[str] = Field(
+        default=None,
+        description="Jinja2 template for notification title"
+    )
+    message_template: Optional[str] = Field(
+        default=None,
+        description="Jinja2 template for notification message"
+    )
+    object_templates: str = Field(
+        default="",
+        description="Object-specific templates (format: object:template;object2:template2)"
+    )
+    severity_templates: str = Field(
+        default="",
+        description="Severity-specific templates (format: severity:template;severity2:template2)"
+    )
+    camera_templates: str = Field(
+        default="",
+        description="Camera-specific templates (format: camera:template;camera2:template2)"
     )
     
     # Debug Configuration

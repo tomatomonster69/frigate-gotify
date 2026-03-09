@@ -102,6 +102,10 @@ class GotifyClient:
         This ensures remote clients can view images without accessing local Frigate.
         The image is embedded as a base64 data URI in the message.
         
+        Gotify image display options:
+        - bigImageUrl: Shows large image in notification view
+        - bigImage: Uses base64 data URI for embedded images
+        
         Args:
             title: Message title
             message: Message content
@@ -124,16 +128,72 @@ class GotifyClient:
         mime_type = f"image/{image_format}"
         data_uri = f"data:{mime_type};base64,{b64_image}"
         
-        # Add extras for Gotify clients that support big images
+        # Configure extras for Gotify clients to display images properly
+        # client::display controls how the message is rendered
+        extras["client::display"] = {
+            "contentType": "text/markdown",
+        }
+        
+        # client::notification controls the notification appearance
+        # Using bigImageUrl with data URI for large embedded image
+        extras["client::notification"] = {
+            "bigImageUrl": data_uri,
+            "bigImage": data_uri,  # Fallback for some clients
+            # Try to make image bigger
+            "image": data_uri,
+        }
+        
+        # Also add android-specific extras for better image display
+        extras["android"] = {
+            "style": "bigPicture",
+            "pictureUrl": data_uri,
+            "largeImage": data_uri,
+        }
+        
+        # Include image in markdown message as data URI for maximum compatibility
+        full_message = f"{message}\n\n![snapshot]({data_uri})"
+        
+        return await self.send_message(title, full_message, priority, extras)
+    
+    async def send_message_with_external_image(
+        self,
+        title: str,
+        message: str,
+        image_url: str,
+        priority: Optional[int] = None,
+        extras: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Send a message with an external image URL.
+        
+        Note: This requires the Gotify client to have access to the image URL.
+        For remote clients without local network access, use send_message_with_image_data instead.
+        
+        Args:
+            title: Message title
+            message: Message content
+            image_url: URL to the image
+            priority: Message priority
+            extras: Extra data for the message
+            
+        Returns:
+            Response from Gotify API
+        """
+        if extras is None:
+            extras = {}
+        
+        if priority is None:
+            priority = settings.notification_priority
+        
+        # Configure extras for image display
         extras["client::display"] = {
             "contentType": "text/markdown",
         }
         extras["client::notification"] = {
-            "bigImageUrl": data_uri,
+            "bigImageUrl": image_url,
         }
         
-        # Include image in markdown message as data URI
-        full_message = f"{message}\n\n![snapshot]({data_uri})"
+        # Include image in markdown message
+        full_message = f"{message}\n\n![snapshot]({image_url})"
         
         return await self.send_message(title, full_message, priority, extras)
     

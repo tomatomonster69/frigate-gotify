@@ -5,11 +5,12 @@ import logging
 import signal
 import sys
 from datetime import datetime
-from typing import Set, Optional
+from typing import Set, Optional, Dict, Any
 
 from .config import settings
 from .frigate_client import FrigateClient, ReviewEvent, Event
 from .gotify_client import GotifyClient
+from .template_engine import TemplateEngine, parse_template_config
 
 # Configure logging
 logging.basicConfig(
@@ -28,6 +29,15 @@ class FrigateGotifyBridge:
         self.gotify = GotifyClient()
         self.running = False
         self.processed_reviews: Set[str] = set()
+        
+        # Initialize template engine
+        self.template_engine = TemplateEngine(
+            title_template=settings.title_template,
+            message_template=settings.message_template,
+            object_templates=parse_template_config(settings.object_templates),
+            severity_templates=parse_template_config(settings.severity_templates),
+            camera_templates=parse_template_config(settings.camera_templates),
+        )
         
     async def start(self):
         """Start the bridge service."""
@@ -106,47 +116,60 @@ class FrigateGotifyBridge:
                         if event.description:  # Prefer events with GenAI description
                             break
             
-            # Build notification message
-            title = f"[{review.severity.upper()}] {review.camera}"
-            
-            # Build message content
-            message_parts = []
-            
-            # Add GenAI description if available
-            if best_event and best_event.description:
-                message_parts.append(f"**Description:** {best_event.description}")
-            
-            # Add detected objects
-            if review.objects:
-                objects_str = ", ".join(review.objects)
-                message_parts.append(f"**Objects:** {objects_str}")
-            
-            # Add zones
-            if review.zones:
-                zones_str = ", ".join(review.zones)
-                message_parts.append(f"**Zones:** {zones_str}")
-            
-            # Add audio detections
-            if review.audio:
-                audio_str = ", ".join(review.audio)
-                message_parts.append(f"**Audio:** {audio_str}")
-            
-            # Add timestamp
+            # Extract template data
+            object_label = review.objects[0] if review.objects else "unknown"
+            sub_label = best_event.sub_label if best_event else None
+            genai_description = best_event.description if best_event else None
+            zones = review.zones
+            audio = review.audio
             timestamp = review.start_time.strftime("%Y-%m-%d %H:%M:%S")
-            message_parts.append(f"**Time:** {timestamp}")
+            score = best_event.top_score if best_event else None
             
-            message = "\n".join(message_parts)
+            # Get location - use zones if available, otherwise use camera name
+            location = ", ".join(zones) if zones else review.camera.replace("_", " ")
+            
+            # Render title using template engine
+            title = self.template_engine.render_title(
+                camera=review.camera,
+                severity=review.severity,
+                object_label=object_label,
+                sub_label=sub_label,
+                location=location,
+                genai_description=genai_description,
+                zones=zones,
+                audio=audio,
+                timestamp=timestamp,
+                score=score,
+            )
+            
+            # Render message using template engine
+            message = self.template_engine.render_message(
+                camera=review.camera,
+                object_label=object_label,
+                sub_label=sub_label,
+                location=location,
+                severity=review.severity,
+                genai_description=genai_description,
+                zones=zones,
+                audio=audio,
+                timestamp=timestamp,
+                score=score,
+            )
             
             # Get snapshot image if available
             if settings.include_snapshot and best_event and best_event.has_snapshot:
-                image_data = await self.frigate.get_snapshot(best_event.id)
+                image_data = await self.frigate.get_snapshot(
+                    best_event.id,
+                    format=settings.snapshot_format,
+                    quality=settings.snapshot_quality,
+                )
                 
                 if image_data:
                     await self.gotify.send_message_with_image_data(
                         title=title,
                         message=message,
                         image_data=image_data,
-                        image_format="jpeg",
+                        image_format=settings.snapshot_format,
                         priority=settings.notification_priority,
                     )
                     logger.info(f"Sent notification with image for review {review.id}")
