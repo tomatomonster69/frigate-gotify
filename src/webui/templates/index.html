@@ -127,11 +127,17 @@
             <!-- Filters Tab -->
             <section id="filters" class="tab-content">
                 <h2>Event Filters</h2>
-                <div class="form-group">
-                    <label for="severity_filter">Severity Filter</label>
-                    <input type="text" id="severity_filter" name="severity_filter" value="alert,detection" placeholder="alert,detection">
-                    <small>Comma-separated list of severity levels to notify on</small>
+                <h3>Severity Levels</h3>
+                <p class="info">Select which types of events to receive notifications for.</p>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="filter_alerts" name="filter_alerts" checked>
+                    <label for="filter_alerts">Alerts (critical/high priority events)</label>
                 </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="filter_detections" name="filter_detections" checked>
+                    <label for="filter_detections">Detections (standard object detections)</label>
+                </div>
+                <h3 style="margin-top: 20px;">Camera Filter</h3>
                 <div class="form-group">
                     <label for="camera_filter">Camera Filter</label>
                     <input type="text" id="camera_filter" name="camera_filter" value="all" placeholder="all or camera1,camera2">
@@ -181,7 +187,10 @@
                     <input type="checkbox" id="debug" name="debug">
                     <label for="debug">Enable Debug Logging</label>
                 </div>
-                <button type="submit" class="btn-primary">Save Configuration</button>
+                <div class="button-group">
+                    <button type="submit" class="btn-primary">Save Configuration</button>
+                    <button type="button" id="restart-btn" class="btn-restart">Restart Service</button>
+                </div>
             </div>
         </form>
 

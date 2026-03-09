@@ -170,13 +170,27 @@ class TemplateEngine:
         **kwargs
     ) -> str:
         """Render the notification title."""
+        # Extract known parameters to avoid duplicate kwargs
+        object_label = kwargs.pop("object_label", "object")
+        sub_label = kwargs.pop("sub_label", None)
+        location = kwargs.pop("location", "unknown area")
+        genai_description = kwargs.pop("genai_description", None)
+        zones = kwargs.pop("zones", None)
+        audio = kwargs.pop("audio", None)
+        timestamp = kwargs.pop("timestamp", None)
+        score = kwargs.pop("score", None)
+        
         vars = self._get_template_vars(
             camera=camera,
-            object_label=kwargs.get("object_label", "object"),
-            sub_label=kwargs.get("sub_label"),
-            location=kwargs.get("location", "unknown area"),
+            object_label=object_label,
+            sub_label=sub_label,
+            location=location,
             severity=severity,
-            genai_description=kwargs.get("genai_description"),
+            genai_description=genai_description,
+            zones=zones,
+            audio=audio,
+            timestamp=timestamp,
+            score=score,
             **kwargs
         )
         

@@ -188,8 +188,9 @@ async function loadConfig() {
         document.getElementById('image_max_size_kb').value = config.image_max_size_kb || 100;
         document.getElementById('image_max_size_kb_value').textContent = config.image_max_size_kb || 100;
         
-        // Filters
-        document.getElementById('severity_filter').value = config.severity_filter || 'alert,detection';
+        // Filters - Toggles
+        document.getElementById('filter_alerts').checked = config.filter_alerts !== false;
+        document.getElementById('filter_detections').checked = config.filter_detections !== false;
         document.getElementById('camera_filter').value = config.camera_filter || 'all';
         
         // Templates
@@ -241,8 +242,9 @@ document.getElementById('config-form').addEventListener('submit', async (e) => {
         image_quality: parseInt(document.getElementById('image_quality').value),
         image_max_size_kb: parseInt(document.getElementById('image_max_size_kb').value),
         
-        // Filters
-        severity_filter: document.getElementById('severity_filter').value,
+        // Filters - Toggles
+        filter_alerts: document.getElementById('filter_alerts').checked,
+        filter_detections: document.getElementById('filter_detections').checked,
         camera_filter: document.getElementById('camera_filter').value,
         
         // Templates
@@ -283,6 +285,33 @@ function showStatus(message, type) {
         status.className = 'status';
     }, 5000);
 }
+
+// Restart button handler
+document.getElementById('restart-btn').addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to restart the service? This will temporarily interrupt notifications.')) {
+        return;
+    }
+    
+    try {
+        showStatus('Restarting service...', 'info');
+        
+        const response = await fetch('/api/restart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showStatus('✓ ' + data.message, 'success');
+            // The service will restart, so the page will become unavailable
+        } else {
+            showStatus('✗ ' + (data.detail || 'Failed to restart'), 'error');
+        }
+    } catch (error) {
+        showStatus('✗ Network error (service may be restarting)', 'info');
+    }
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

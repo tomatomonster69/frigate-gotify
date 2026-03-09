@@ -110,8 +110,9 @@ class ConfigSaveRequest(BaseModel):
     image_quality: int = 75
     image_max_size_kb: int = 100
     
-    # Filter Settings
-    severity_filter: str = "alert,detection"
+    # Filter Settings - Toggles for each severity
+    filter_alerts: bool = True
+    filter_detections: bool = True
     camera_filter: str = "all"
     
     # Template Settings
@@ -157,6 +158,11 @@ def create_app() -> FastAPI:
     @app.get("/api/config")
     async def get_config():
         """Get current configuration."""
+        # Parse severity filter into toggles
+        severity_filter = settings.severity_filter.lower()
+        filter_alerts = "alert" in severity_filter
+        filter_detections = "detection" in severity_filter
+        
         return {
             # Frigate Settings
             "frigate_url": settings.frigate_url,
@@ -187,8 +193,9 @@ def create_app() -> FastAPI:
             "image_quality": settings.image_quality,
             "image_max_size_kb": settings.image_max_size_kb,
             
-            # Filter Settings
-            "severity_filter": settings.severity_filter,
+            # Filter Settings - Toggles
+            "filter_alerts": filter_alerts,
+            "filter_detections": filter_detections,
             "camera_filter": settings.camera_filter,
             
             # Template Settings
@@ -245,6 +252,14 @@ def create_app() -> FastAPI:
             
             env_file = config_dir / ".env"
             
+            # Build severity filter from toggles
+            severity_parts = []
+            if request.filter_alerts:
+                severity_parts.append("alert")
+            if request.filter_detections:
+                severity_parts.append("detection")
+            severity_filter = ",".join(severity_parts) if severity_parts else "alert,detection"
+            
             # Build .env content
             lines = [
                 "# Frigate-Gotify Configuration",
@@ -287,7 +302,7 @@ def create_app() -> FastAPI:
                 f"IMAGE_MAX_SIZE_KB={request.image_max_size_kb}",
                 "",
                 "# Filter Settings",
-                f"SEVERITY_FILTER={request.severity_filter}",
+                f"SEVERITY_FILTER={severity_filter}",
                 f"CAMERA_FILTER={request.camera_filter}",
                 "",
                 "# Template Settings",
@@ -309,7 +324,7 @@ def create_app() -> FastAPI:
             
             return {
                 "success": True,
-                "message": "Configuration saved! Restart the service to apply changes.",
+                "message": "Configuration saved! Click 'Restart' to apply changes.",
                 "file": str(env_file),
             }
         except PermissionError as e:
@@ -320,6 +335,36 @@ def create_app() -> FastAPI:
             )
         except Exception as e:
             logger.error(f"Error saving config: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/restart")
+    async def restart_container():
+        """Restart the container by exiting (Docker/compose will restart it)."""
+        import os
+        import signal
+        
+        logger.info("Container restart requested via Web UI")
+        
+        # Send SIGTERM to ourselves - Docker/compose will handle restart
+        # This is safer than trying to run docker commands from inside
+        try:
+            # Schedule the exit for a moment later so response can be sent
+            import threading
+            def delayed_exit():
+                import time
+                time.sleep(1)  # Give time for response to be sent
+                logger.info("Shutting down for restart...")
+                os.kill(os.getpid(), signal.SIGTERM)
+            
+            thread = threading.Thread(target=delayed_exit, daemon=True)
+            thread.start()
+            
+            return {
+                "success": True,
+                "message": "Container is restarting... The service will be unavailable briefly."
+            }
+        except Exception as e:
+            logger.error(f"Error during restart: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
     # Serve static files

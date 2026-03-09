@@ -314,6 +314,29 @@ header .subtitle {
     transform: translateY(-2px);
 }
 
+.button-group {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-restart {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #d94a4a, #c62828);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-restart:hover {
+    background: linear-gradient(135deg, #e95a5a, #d63838);
+    transform: translateY(-2px);
+}
+
 /* Status Messages */
 .status {
     position: fixed;
