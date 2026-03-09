@@ -81,24 +81,32 @@ class FrigateGotifyBridge:
         self._save_processed_reviews()
     
     def _load_processed_reviews(self):
-        """Load processed review IDs from JSON file."""
+        """Load processed review IDs from JSON file with message tracking."""
         if self.processed_reviews_file.exists():
             try:
                 content = self.processed_reviews_file.read_text()
                 if content.strip():
                     import json
-                    ids = json.loads(content)
-                    self.processed_reviews = set(ids)
+                    data = json.loads(content)
+                    self.processed_reviews = set(data.get("reviewed_ids", []))
+                    self.message_tracking = data.get("message_tracking", {})
                     logger.info(f"Loaded {len(self.processed_reviews)} processed reviews")
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Error loading processed reviews: {e}")
+                self.message_tracking = {}
     
     def _save_processed_reviews(self):
-        """Save processed review IDs to JSON file."""
+        """Save processed review IDs to JSON file with message tracking."""
         try:
             self.processed_reviews_file.parent.mkdir(parents=True, exist_ok=True)
             import json
-            self.processed_reviews_file.write_text(json.dumps(list(self.processed_reviews)))
+            
+            # Save both review IDs and message tracking info
+            tracking_data = {
+                "reviewed_ids": list(self.processed_reviews),
+                "message_tracking": self.message_tracking if hasattr(self, 'message_tracking') else {},
+            }
+            self.processed_reviews_file.write_text(json.dumps(tracking_data))
             logger.debug(f"Saved {len(self.processed_reviews)} processed reviews")
         except IOError as e:
             logger.error(f"Error saving processed reviews: {e}")
@@ -199,14 +207,27 @@ class FrigateGotifyBridge:
                 )
                 
                 if image_data:
-                    await self.gotify.send_message_with_image_data(
+                    # Use file attachment method for optimized remote image delivery
+                    message_response, image_url = await self.gotify.send_message_with_file_attachment(
                         title=title,
                         message=message,
                         image_data=image_data,
                         image_format=settings.snapshot_format,
                         priority=settings.notification_priority,
                     )
-                    logger.info(f"Sent notification with image for review {review.id}")
+                    message_id = message_response.get("id")
+                    
+                    # Store message_id and image_url for remote access
+                    # Add to processed reviews tracking
+                    self.processed_reviews.add(review.id)
+                    if not hasattr(self, 'message_tracking'):
+                        self.message_tracking = {}
+                    self.message_tracking[review.id] = {
+                        'message_id': message_id,
+                        'image_url': image_url,
+                    }
+                    
+                    logger.info(f"Sent notification with file attachment for review {review.id}, message_id: {message_id}")
                 else:
                     # Send without image
                     await self.gotify.send_message(title=title, message=message)

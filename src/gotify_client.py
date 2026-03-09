@@ -214,6 +214,81 @@ class GotifyClient:
         
         return await self.send_message(title, full_message, priority, extras)
     
+    async def send_message_with_file_attachment(
+        self,
+        title: str,
+        message: str,
+        image_data: bytes,
+        image_format: str = "jpeg",
+        priority: Optional[int] = None,
+    ) -> tuple[Dict[str, Any], str]:
+        """Send a message with an image file attachment via multipart/form-data.
+        
+        This method sends the image as a separate file attachment, allowing the
+        Gotify server to serve it via /message/{id}/file endpoint. Remote clients
+        can then download the image through the reverse proxy.
+        
+        Args:
+            title: Message title
+            message: Message content
+            image_data: Raw image bytes
+            image_format: Image format (jpeg, png, webp)
+            priority: Message priority
+            
+        Returns:
+            Tuple of (message_response, image_url)
+                - message_response: Response from Gotify API
+                - image_url: Full URL to retrieve the image
+        """
+        if priority is None:
+            priority = settings.notification_priority
+        
+        # First, send the message without image to get the message ID
+        payload = {
+            "title": title,
+            "message": message,
+            "priority": priority,
+        }
+        
+        try:
+            async with httpx.AsyncClient(verify=self.verify_ssl, timeout=30.0) as client:
+                # Step 1: Create message
+                response = await client.post(
+                    f"{self.base_url}/message",
+                    headers=self.headers,
+                    json=payload,
+                )
+                response.raise_for_status()
+                message_data = response.json()
+                message_id = message_data.get("id")
+                
+                if not message_id:
+                    logger.error("Message ID not found in response")
+                    raise Exception("Failed to get message ID")
+                
+                # Step 2: Upload image file as attachment
+                files = {
+                    "file": (f"image.{image_format}", image_data, f"image/{image_format}"),
+                }
+                
+                attach_response = await client.post(
+                    f"{self.base_url}/message/{message_id}/file",
+                    headers=self.headers,
+                    files=files,
+                )
+                attach_response.raise_for_status()
+                
+                # Build image URL for remote access
+                image_url = f"{self.base_url}/message/{message_id}/file"
+                
+                logger.info(f"Sent message with file attachment: {message_id}, image URL: {image_url}")
+                
+                return message_data, image_url
+                
+        except httpx.HTTPError as e:
+            logger.error(f"Error sending message with file attachment: {e}")
+            raise
+    
     async def health_check(self) -> bool:
         """Check if Gotify server is reachable.
         
