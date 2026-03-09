@@ -1,16 +1,15 @@
 """FastAPI web server for template configuration UI."""
 
-import os
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from ..config import settings
-from ..template_engine import TemplateEngine, parse_template_config
+from ..template_engine import TemplateEngine
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +79,51 @@ PRESET_TEMPLATES = [
 ]
 
 
-class TemplateSaveRequest(BaseModel):
+class ConfigSaveRequest(BaseModel):
+    """Full configuration save request."""
+    # Frigate Settings
+    frigate_url: str
+    frigate_api_key: Optional[str] = None
+    frigate_username: Optional[str] = None
+    frigate_password: Optional[str] = None
+    
+    # Gotify Settings
+    gotify_url: str
+    gotify_app_token: str
+    
+    # SSL Settings
+    verify_ssl: bool = False
+    
+    # Polling Settings
+    poll_interval: int = 10
+    
+    # Notification Settings
+    notification_priority: int = 5
+    include_snapshot: bool = True
+    snapshot_quality: int = 90
+    snapshot_format: str = "jpg"
+    
+    # Image Compression Settings
+    image_compression_enabled: bool = True
+    image_max_width: int = 640
+    image_max_height: int = 480
+    image_quality: int = 75
+    image_max_size_kb: int = 100
+    
+    # Filter Settings
+    severity_filter: str = "alert,detection"
+    camera_filter: str = "all"
+    
+    # Template Settings
+    title_template: Optional[str] = None
+    message_template: Optional[str] = None
+    
+    # Debug
+    debug: bool = False
+
+
+class TemplatePreviewRequest(BaseModel):
+    """Template preview request."""
     title_template: str
     message_template: str
 
@@ -89,10 +132,7 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(title="Frigate-Gotify Config")
     
-    # Get the directory containing static files
     webui_dir = Path(__file__).parent
-    
-    # Mount static files
     static_dir = webui_dir / "static"
     static_dir.mkdir(exist_ok=True)
     
@@ -118,19 +158,49 @@ def create_app() -> FastAPI:
     async def get_config():
         """Get current configuration."""
         return {
-            "title_template": settings.title_template or PRESET_TEMPLATES[0]["title"],
-            "message_template": settings.message_template or PRESET_TEMPLATES[0]["message"],
+            # Frigate Settings
             "frigate_url": settings.frigate_url,
+            "frigate_api_key": settings.frigate_api_key or "",
+            "frigate_username": settings.frigate_username or "",
+            "frigate_password": settings.frigate_password or "",
+            
+            # Gotify Settings
             "gotify_url": settings.gotify_url,
+            "gotify_app_token": settings.gotify_app_token[:8] + "..." if settings.gotify_app_token else "",
+            
+            # SSL Settings
+            "verify_ssl": settings.verify_ssl,
+            
+            # Polling Settings
+            "poll_interval": settings.poll_interval,
+            
+            # Notification Settings
+            "notification_priority": settings.notification_priority,
+            "include_snapshot": settings.include_snapshot,
+            "snapshot_quality": settings.snapshot_quality,
+            "snapshot_format": settings.snapshot_format,
+            
+            # Image Compression Settings
             "image_compression_enabled": settings.image_compression_enabled,
             "image_max_width": settings.image_max_width,
             "image_max_height": settings.image_max_height,
             "image_quality": settings.image_quality,
             "image_max_size_kb": settings.image_max_size_kb,
+            
+            # Filter Settings
+            "severity_filter": settings.severity_filter,
+            "camera_filter": settings.camera_filter,
+            
+            # Template Settings
+            "title_template": settings.title_template or PRESET_TEMPLATES[0]["title"],
+            "message_template": settings.message_template or PRESET_TEMPLATES[0]["message"],
+            
+            # Debug
+            "debug": settings.debug,
         }
     
     @app.post("/api/preview")
-    async def preview_template(request: TemplateSaveRequest):
+    async def preview_template(request: TemplatePreviewRequest):
         """Preview a template with sample data."""
         try:
             engine = TemplateEngine(
@@ -167,34 +237,85 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=str(e))
     
     @app.post("/api/save")
-    async def save_config(request: TemplateSaveRequest):
-        """Save configuration to config directory."""
+    async def save_config(request: ConfigSaveRequest):
+        """Save full configuration to .env file."""
         try:
-            # Use writable config directory (mounted volume)
             config_dir = Path("/app/config")
             config_dir.mkdir(exist_ok=True)
             
-            config_file = config_dir / "templates.env"
+            env_file = config_dir / ".env"
             
-            # Build config content
-            config_content = f"""# Template configuration (auto-generated by Web UI)
-# Restart the service after changes
-TITLE_TEMPLATE={request.title_template}
-MESSAGE_TEMPLATE={request.message_template}
-"""
+            # Build .env content
+            lines = [
+                "# Frigate-Gotify Configuration",
+                "# Generated by Web UI",
+                "",
+                "# Frigate Settings",
+                f"FRIGATE_URL={request.frigate_url}",
+            ]
             
-            # Write config
-            config_file.write_text(config_content)
-            logger.info(f"Template configuration saved to {config_file}")
+            if request.frigate_api_key:
+                lines.append(f"FRIGATE_API_KEY={request.frigate_api_key}")
+            if request.frigate_username:
+                lines.append(f"FRIGATE_USERNAME={request.frigate_username}")
+            if request.frigate_password:
+                lines.append(f"FRIGATE_PASSWORD={request.frigate_password}")
+            
+            lines.extend([
+                "",
+                "# Gotify Settings",
+                f"GOTIFY_URL={request.gotify_url}",
+                f"GOTIFY_APP_TOKEN={request.gotify_app_token}",
+                "",
+                "# SSL Settings",
+                f"VERIFY_SSL={'true' if request.verify_ssl else 'false'}",
+                "",
+                "# Polling Settings",
+                f"POLL_INTERVAL={request.poll_interval}",
+                "",
+                "# Notification Settings",
+                f"NOTIFICATION_PRIORITY={request.notification_priority}",
+                f"INCLUDE_SNAPSHOT={'true' if request.include_snapshot else 'false'}",
+                f"SNAPSHOT_QUALITY={request.snapshot_quality}",
+                f"SNAPSHOT_FORMAT={request.snapshot_format}",
+                "",
+                "# Image Compression Settings",
+                f"IMAGE_COMPRESSION_ENABLED={'true' if request.image_compression_enabled else 'false'}",
+                f"IMAGE_MAX_WIDTH={request.image_max_width}",
+                f"IMAGE_MAX_HEIGHT={request.image_max_height}",
+                f"IMAGE_QUALITY={request.image_quality}",
+                f"IMAGE_MAX_SIZE_KB={request.image_max_size_kb}",
+                "",
+                "# Filter Settings",
+                f"SEVERITY_FILTER={request.severity_filter}",
+                f"CAMERA_FILTER={request.camera_filter}",
+                "",
+                "# Template Settings",
+            ])
+            
+            if request.title_template:
+                lines.append(f"TITLE_TEMPLATE={request.title_template}")
+            if request.message_template:
+                lines.append(f"MESSAGE_TEMPLATE={request.message_template}")
+            
+            lines.extend([
+                "",
+                "# Debug Settings",
+                f"DEBUG={'true' if request.debug else 'false'}",
+            ])
+            
+            env_file.write_text("\n".join(lines) + "\n")
+            logger.info(f"Configuration saved to {env_file}")
             
             return {
-                "success": True, 
-                "message": "Configuration saved to config/templates.env. Add this to your .env and restart the service to apply."
+                "success": True,
+                "message": "Configuration saved! Restart the service to apply changes.",
+                "file": str(env_file),
             }
         except PermissionError as e:
             logger.error(f"Permission denied writing config: {e}")
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail="Cannot write to config directory. Check volume permissions."
             )
         except Exception as e:

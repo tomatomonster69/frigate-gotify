@@ -3,71 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frigate-Gotify Template Editor</title>
+    <title>Frigate-Gotify Configuration</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Frigate-Gotify Template Editor</h1>
-            <div class="header-actions">
-                <select id="preset-select">
-                    <option value="">-- Load Preset --</option>
-                </select>
-            </div>
+            <h1>🔔 Frigate-Gotify</h1>
+            <p class="subtitle">Notification Bridge Configuration</p>
         </header>
 
-        <main>
-            <div class="editor-section">
-                <div class="section-header">
-                    <h2>📋 Template Variables</h2>
-                    <span class="hint">Click to insert at cursor</span>
-                </div>
-                <div id="variables" class="variable-chips"></div>
-            </div>
+        <nav class="tabs">
+            <button class="tab active" data-tab="frigate">Frigate</button>
+            <button class="tab" data-tab="gotify">Gotify</button>
+            <button class="tab" data-tab="notifications">Notifications</button>
+            <button class="tab" data-tab="compression">Compression</button>
+            <button class="tab" data-tab="filters">Filters</button>
+            <button class="tab" data-tab="templates">Templates</button>
+        </nav>
 
-            <div class="editor-section">
-                <div class="section-header">
-                    <h2>📝 Title Template</h2>
+        <form id="config-form">
+            <!-- Frigate Tab -->
+            <section id="frigate" class="tab-content active">
+                <h2>Frigate NVR Settings</h2>
+                <div class="form-group">
+                    <label for="frigate_url">Frigate URL</label>
+                    <input type="text" id="frigate_url" name="frigate_url" placeholder="http://frigate:5000">
+                    <small>URL of your Frigate NVR server</small>
                 </div>
-                <textarea id="title-template" placeholder="Enter title template..."></textarea>
-            </div>
+                <div class="form-group">
+                    <label for="frigate_api_key">API Key (optional)</label>
+                    <input type="password" id="frigate_api_key" name="frigate_api_key" placeholder="Leave empty if not needed">
+                </div>
+                <div class="form-group">
+                    <label for="frigate_username">Username (optional)</label>
+                    <input type="text" id="frigate_username" name="frigate_username" placeholder="For basic auth">
+                </div>
+                <div class="form-group">
+                    <label for="frigate_password">Password (optional)</label>
+                    <input type="password" id="frigate_password" name="frigate_password" placeholder="For basic auth">
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="verify_ssl" name="verify_ssl">
+                    <label for="verify_ssl">Verify SSL Certificates</label>
+                </div>
+            </section>
 
-            <div class="editor-section">
-                <div class="section-header">
-                    <h2>💬 Message Template</h2>
+            <!-- Gotify Tab -->
+            <section id="gotify" class="tab-content">
+                <h2>Gotify Settings</h2>
+                <div class="form-group">
+                    <label for="gotify_url">Gotify URL *</label>
+                    <input type="text" id="gotify_url" name="gotify_url" placeholder="https://gotify.example.com" required>
+                    <small>URL of your Gotify server</small>
                 </div>
-                <textarea id="message-template" placeholder="Enter message template..." rows="6"></textarea>
-            </div>
+                <div class="form-group">
+                    <label for="gotify_app_token">Application Token *</label>
+                    <input type="password" id="gotify_app_token" name="gotify_app_token" placeholder="Gotify app token" required>
+                    <small>Token from your Gotify application</small>
+                </div>
+            </section>
 
-            <div class="editor-section preview-section">
-                <div class="section-header">
-                    <h2>👁️ Live Preview</h2>
-                    <span class="preview-hint">Sample notification preview</span>
+            <!-- Notifications Tab -->
+            <section id="notifications" class="tab-content">
+                <h2>Notification Settings</h2>
+                <div class="form-group">
+                    <label for="poll_interval">Poll Interval: <span id="poll_interval_value">10</span>s</label>
+                    <input type="range" id="poll_interval" name="poll_interval" min="5" max="60" value="10">
+                    <small>How often to check for new events</small>
                 </div>
-                <div class="preview-container">
-                    <div class="gotify-preview">
-                        <div class="gotify-header">
-                            <span class="gotify-icon">🔔</span>
-                            <span class="gotify-app">Frigate-Gotify</span>
-                            <span class="gotify-time">Just now</span>
-                        </div>
-                        <div class="gotify-content">
-                            <div class="gotify-title" id="preview-title">Loading...</div>
-                            <div class="gotify-message" id="preview-message">Loading...</div>
-                            <div class="gotify-image">
-                                <img src="/static/sample_snapshot.jpg" alt="Sample snapshot" onerror="this.style.display='none'">
-                            </div>
-                        </div>
+                <div class="form-group">
+                    <label for="notification_priority">Priority: <span id="notification_priority_value">5</span></label>
+                    <input type="range" id="notification_priority" name="notification_priority" min="1" max="10" value="5">
+                    <small>Gotify notification priority (1=low, 10=urgent)</small>
+                </div>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="include_snapshot" name="include_snapshot" checked>
+                    <label for="include_snapshot">Include Snapshot Image</label>
+                </div>
+                <div class="form-group">
+                    <label for="snapshot_quality">Snapshot Quality: <span id="snapshot_quality_value">90</span>%</label>
+                    <input type="range" id="snapshot_quality" name="snapshot_quality" min="1" max="100" value="90">
+                    <small>Quality of snapshots from Frigate</small>
+                </div>
+                <div class="form-group">
+                    <label for="snapshot_format">Snapshot Format</label>
+                    <select id="snapshot_format" name="snapshot_format">
+                        <option value="jpg">JPEG</option>
+                        <option value="png">PNG</option>
+                        <option value="webp">WebP</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Compression Tab -->
+            <section id="compression" class="tab-content">
+                <h2>Image Compression</h2>
+                <p class="info">Compress images before sending to Gotify to reduce data usage and prevent app crashes on mobile devices.</p>
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="image_compression_enabled" name="image_compression_enabled" checked>
+                    <label for="image_compression_enabled">Enable Image Compression</label>
+                </div>
+                <div class="form-group">
+                    <label for="image_max_width">Max Width: <span id="image_max_width_value">640</span>px</label>
+                    <input type="range" id="image_max_width" name="image_max_width" min="128" max="1920" step="32" value="640">
+                </div>
+                <div class="form-group">
+                    <label for="image_max_height">Max Height: <span id="image_max_height_value">480</span>px</label>
+                    <input type="range" id="image_max_height" name="image_max_height" min="96" max="1080" step="32" value="480">
+                </div>
+                <div class="form-group">
+                    <label for="image_quality">Quality: <span id="image_quality_value">75</span>%</label>
+                    <input type="range" id="image_quality" name="image_quality" min="1" max="100" value="75">
+                    <small>JPEG compression quality</small>
+                </div>
+                <div class="form-group">
+                    <label for="image_max_size_kb">Max File Size: <span id="image_max_size_kb_value">100</span>KB</label>
+                    <input type="range" id="image_max_size_kb" name="image_max_size_kb" min="50" max="500" step="50" value="100">
+                    <small>Approximate maximum file size</small>
+                </div>
+            </section>
+
+            <!-- Filters Tab -->
+            <section id="filters" class="tab-content">
+                <h2>Event Filters</h2>
+                <div class="form-group">
+                    <label for="severity_filter">Severity Filter</label>
+                    <input type="text" id="severity_filter" name="severity_filter" value="alert,detection" placeholder="alert,detection">
+                    <small>Comma-separated list of severity levels to notify on</small>
+                </div>
+                <div class="form-group">
+                    <label for="camera_filter">Camera Filter</label>
+                    <input type="text" id="camera_filter" name="camera_filter" value="all" placeholder="all or camera1,camera2">
+                    <small>Comma-separated list of cameras, or "all"</small>
+                </div>
+            </section>
+
+            <!-- Templates Tab -->
+            <section id="templates" class="tab-content">
+                <h2>Notification Templates</h2>
+                
+                <div class="presets">
+                    <label>Presets:</label>
+                    <div class="preset-buttons">
+                        <button type="button" class="preset-btn" data-preset="0">Generic</button>
+                        <button type="button" class="preset-btn" data-preset="1">Detailed</button>
+                        <button type="button" class="preset-btn" data-preset="2">Minimal</button>
                     </div>
                 </div>
-            </div>
-        </main>
 
-        <footer>
-            <div class="status" id="status"></div>
-            <button id="save-btn" class="btn-primary">💾 Save Template</button>
-        </footer>
+                <div class="form-group">
+                    <label for="title_template">Title Template</label>
+                    <textarea id="title_template" name="title_template" rows="2" placeholder="{{camera_name}} - {{object}} detected"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="message_template">Message Template</label>
+                    <textarea id="message_template" name="message_template" rows="4" placeholder="Enter message template..."></textarea>
+                </div>
+
+                <div class="variables-section">
+                    <label>Available Variables (click to insert):</label>
+                    <div id="variables" class="chips"></div>
+                </div>
+
+                <div class="preview-section">
+                    <h3>Live Preview</h3>
+                    <div class="preview-box">
+                        <div class="preview-title" id="preview-title">Loading...</div>
+                        <div class="preview-message" id="preview-message">Loading...</div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="form-actions">
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="debug" name="debug">
+                    <label for="debug">Enable Debug Logging</label>
+                </div>
+                <button type="submit" class="btn-primary">Save Configuration</button>
+            </div>
+        </form>
+
+        <div id="status" class="status"></div>
     </div>
 
     <script src="/static/app.js"></script>
