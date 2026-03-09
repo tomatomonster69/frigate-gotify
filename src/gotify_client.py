@@ -6,6 +6,7 @@ import httpx
 import base64
 
 from .config import settings
+from .image_compressor import ImageCompressor
 
 logger = logging.getLogger(__name__)
 
@@ -96,11 +97,17 @@ class GotifyClient:
         image_format: str = "jpeg",
         priority: Optional[int] = None,
         extras: Optional[Dict[str, Any]] = None,
+        compress: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """Send a message with embedded image data (base64).
         
         This ensures remote clients can view images without accessing local Frigate.
         The image is embedded as a base64 data URI in the message.
+        
+        Images are automatically compressed to prevent mobile app crashes:
+        - Resized to max dimensions (default 640x480)
+        - Compressed to target size (default 100KB)
+        - Quality adjusted iteratively
         
         Gotify image display options:
         - bigImageUrl: Shows large image in notification view
@@ -113,6 +120,7 @@ class GotifyClient:
             image_format: Image format (jpeg, png, webp)
             priority: Message priority
             extras: Extra data for the message
+            compress: Override compression setting (None uses config)
             
         Returns:
             Response from Gotify API
@@ -122,6 +130,15 @@ class GotifyClient:
         
         if priority is None:
             priority = settings.notification_priority
+        
+        # Determine if compression should be applied
+        should_compress = compress if compress is not None else settings.image_compression_enabled
+        
+        # Compress image if enabled
+        if should_compress:
+            compressor = ImageCompressor()
+            image_data, image_format = compressor.compress(image_data, "JPEG")
+            logger.debug(f"Image compressed, final size: {len(image_data) / 1024:.1f}KB")
         
         # Encode image as base64
         b64_image = base64.b64encode(image_data).decode("utf-8")

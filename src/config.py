@@ -62,11 +62,33 @@ class Settings(BaseSettings):
     # Image Configuration
     snapshot_quality: int = Field(
         default=90,
-        description="Snapshot quality (1-100, higher = better quality)"
+        description="Snapshot quality from Frigate (1-100)"
     )
     snapshot_format: str = Field(
         default="jpg",
-        description="Snapshot format (jpg, png, webp)"
+        description="Snapshot format from Frigate (jpg, png, webp)"
+    )
+    
+    # Image Compression Configuration (for Gotify)
+    image_compression_enabled: bool = Field(
+        default=True,
+        description="Enable image compression before sending to Gotify"
+    )
+    image_max_width: int = Field(
+        default=640,
+        description="Maximum image width in pixels for notifications"
+    )
+    image_max_height: int = Field(
+        default=480,
+        description="Maximum image height in pixels for notifications"
+    )
+    image_quality: int = Field(
+        default=75,
+        description="JPEG quality for compressed images (1-100)"
+    )
+    image_max_size_kb: int = Field(
+        default=100,
+        description="Maximum image size in KB (approximate)"
     )
     
     # Filter Configuration
