@@ -1,6 +1,6 @@
 services:
   frigate-gotify:
-    image: ghcr.io/tomatomonster69/frigate-gotify:main
+    image: ghcr.io/tomatomonster69/frigate-gotify:latest
     container_name: frigate-gotify
     restart: unless-stopped
     env_file:
@@ -13,7 +13,7 @@ services:
     networks:
       - frigate-network
     volumes:
-      - ./config:/app/config
+      - config-data:/app/config
     logging:
       driver: "json-file"
       options:
@@ -23,4 +23,7 @@ services:
 networks:
   frigate-network:
     driver: bridge
-    # Network is automatically created by docker-compose
+
+volumes:
+  config-data:
+    driver: local
