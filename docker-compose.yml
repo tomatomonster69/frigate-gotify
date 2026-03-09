@@ -12,6 +12,8 @@ services:
       - "80:80"
     networks:
       - frigate-network
+    volumes:
+      - ./config:/app/config
     logging:
       driver: "json-file"
       options:
@@ -20,7 +22,5 @@ services:
 
 networks:
   frigate-network:
-    external: true
-    # If the network doesn't exist, create it with:
-    # docker network create frigate-network
-    # Or remove 'external: true' to create a local network
+    driver: bridge
+    # Network is automatically created by docker-compose
