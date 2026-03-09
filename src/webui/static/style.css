@@ -285,6 +285,14 @@ header .subtitle {
     overflow-y: auto;
 }
 
+.preview-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid #444;
+    background: #0a0a1e;
+}
+
 /* Form Actions */
 .form-actions {
     margin-top: 30px;
